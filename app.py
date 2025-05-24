@@ -1,6 +1,7 @@
 # Streamlit Prototype for Ross's Investment Dashboard
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 
 # Load data (normally would connect to your spreadsheet or database)
 df = pd.read_excel("Ross_Complete_Portfolio_System.xlsx", sheet_name="Holdings")
@@ -22,6 +23,15 @@ total = core + growth + spec
 st.metric("Core %", f"{core/total:.1%}")
 st.metric("Growth %", f"{growth/total:.1%}")
 st.metric("Speculative %", f"{spec/total:.1%}")
+
+# --- Category Allocation Pie Chart ---
+st.subheader("Allocation by Category")
+categories = ["Core", "Growth", "Speculative"]
+values = [core, growth, spec]
+fig1, ax1 = plt.subplots()
+ax1.pie(values, labels=categories, autopct='%1.1f%%', startangle=90)
+ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+st.pyplot(fig1)
 
 # --- Holdings Table ---
 st.header("Current Holdings")
