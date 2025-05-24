@@ -21,9 +21,17 @@ growth = df[df["Category"] == "Growth"]["Current Value (£)"].sum()
 spec = df[df["Category"] == "Speculative"]["Current Value (£)"].sum()
 total = core + growth + spec
 
-st.metric("Core %", f"{core/total:.1%}")
-st.metric("Growth %", f"{growth/total:.1%}")
-st.metric("Speculative %", f"{spec/total:.1%}")
+st.metric("Core %", f"{core/total:.2%}")
+st.metric("Growth %", f"{growth/total:.2%}")
+st.metric("Speculative %", f"{spec/total:.2%}")
+
+# --- Last Uploaded Holdings Summary ---
+st.subheader("Latest Holdings Snapshot")
+df_sorted = df.sort_values(by="Adjusted Score (out of 100)", ascending=False)
+for idx, row in df_sorted.iterrows():
+    st.write(f"{row['Ticker']}: {row['Company']} — Score: {row['Adjusted Score (out of 100)']:.2f}, Suggested Action: {row['Suggested Action']}")
+    if idx == 4:
+        break
 
 # --- Category Allocation Pie Chart ---
 st.subheader("Allocation by Category")
@@ -50,10 +58,23 @@ ax2.legend()
 st.pyplot(fig2)
 
 # --- Country Allocation Pie Chart ---
-st.subheader("Allocation by Country")
-country_data = df.groupby("Country")["Current Value (£)"].sum()
+st.subheader("Allocation by Region")
+def map_to_region(country):
+    if country in ["US", "CA"]:
+        return "US"
+    elif country in ["CN", "JP", "KR", "IN"]:
+        return "Asia"
+    elif country in ["UK"]:
+        return "UK"
+    elif country in ["DE", "FR", "IT", "ES", "NL", "SE"]:
+        return "Europe"
+    else:
+        return "Rest of World"
+
+df["Region"] = df["Country"].apply(map_to_region)
+region_data = df.groupby("Region")["Current Value (£)"].sum()
 fig3, ax3 = plt.subplots()
-ax3.pie(country_data, labels=country_data.index, autopct='%1.1f%%', startangle=90)
+ax3.pie(region_data, labels=region_data.index, autopct='%1.1f%%', startangle=90)
 ax3.axis('equal')
 st.pyplot(fig3)
 
@@ -66,14 +87,8 @@ ax4.axis('equal')
 st.pyplot(fig4)
 
 # --- Holdings Table ---
-st.header("Current Holdings")
-selected_status = st.selectbox("Filter by Sell Alert:", ["All", "Yes", "No"])
-if selected_status != "All":
-    filtered_df = df[df["Sell Alert?"] == selected_status]
-else:
-    filtered_df = df
-
-st.dataframe(filtered_df[["Ticker", "Company", "Category", "Adjusted Score (out of 100)", "Sell Alert?", "Suggested Action"]])
+st.header("Current Holdings — Full View")
+st.dataframe(df.round(2))
 
 # --- New Picks ---
 st.header("New Stock Picks")
@@ -86,7 +101,7 @@ for index, row in new_picks.iterrows():
 
 # --- Toggle to Show New Picks Raw Data ---
 if st.checkbox("Show Raw Data for New Picks"):
-    st.dataframe(new_picks)
+    st.dataframe(new_picks.round(2))
 
 # --- Monthly Allocation ---
 st.header("Monthly £500 Allocation")
@@ -94,7 +109,7 @@ allocations = df[df["Suggested Action"] != "Sell Entirely"]
 allocations = allocations.sort_values(by="Adjusted Score (out of 100)", ascending=False).head(3)
 amounts = [200, 150, 150]
 for idx, row in enumerate(allocations.itertuples()):
-    st.write(f"£{amounts[idx]} → {row.Ticker} ({row.Company}) — Score: {row._7}")
+    st.write(f"£{amounts[idx]} → {row.Ticker} ({row.Company}) — Score: {row._7:.2f}")
 
 # --- Footer ---
 st.markdown("---")
