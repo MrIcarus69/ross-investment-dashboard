@@ -16,6 +16,23 @@ risk_profile = st.sidebar.selectbox("Select Risk Profile:", ["Aggressive", "Bala
 st.title("Ross's Investment Dashboard")
 st.header("Portfolio Overview")
 
+# Category Definitions
+with st.expander("What do Core, Growth, and Speculative mean?"):
+    st.markdown("**Core:** Stable, long-term holdings with reliable returns.")
+    st.markdown("**Growth:** Medium-risk stocks with high upside potential.")
+    st.markdown("**Speculative:** High-risk, high-reward stocks including penny stocks.")
+
+# --- Latest Holdings Snapshot Table ---
+st.subheader("Latest Holdings Snapshot")
+snapshot_data = {
+    "Ticker": ["MVST", "ATAI", "NVDA", "LSEG", "NEBIUS", "CREO", "JOBY", "BBAI", "CGEN", "AMZN"],
+    "Company": ["Microvast", "ATAI Life Sciences", "Nvidia", "LSE Group", "Nebius Group NV", "Creo Medical", "Joby Aviation", "BigBear.ai", "Compugen", "Amazon"],
+    "Current Value (£)": [2667.70, 1680.75, 1109.34, 1164.01, 1167.96, 538.40, 247.23, 1475.53, 1232.06, 1502.45],
+    "Gain/Loss (£ / %)": ["+1491.81 (126.87%)", "+348.20 (26.13%)", "+144.80 (15.01%)", "+106.01 (10.02%)", "+108.14 (10.20%)", "+38.40 (7.68%)", "–2.40 (0.96%)", "–49.46 (3.24%)", "–119.26 (8.83%)", "–120.52 (7.43%)"]
+}
+st.dataframe(pd.DataFrame(snapshot_data))
+
+# --- Allocation Summary ---
 core = df[df["Category"] == "Core"]["Current Value (£)"].sum()
 growth = df[df["Category"] == "Growth"]["Current Value (£)"].sum()
 spec = df[df["Category"] == "Speculative"]["Current Value (£)"].sum()
@@ -25,70 +42,29 @@ st.metric("Core %", f"{core/total:.2%}")
 st.metric("Growth %", f"{growth/total:.2%}")
 st.metric("Speculative %", f"{spec/total:.2%}")
 
-# --- Last Uploaded Holdings Summary ---
-st.subheader("Latest Holdings Snapshot")
-df_sorted = df.sort_values(by="Adjusted Score (out of 100)", ascending=False)
-for idx, row in df_sorted.iterrows():
-    st.write(f"{row['Ticker']}: {row['Company']} — Score: {row['Adjusted Score (out of 100)']:.2f}, Suggested Action: {row['Suggested Action']}")
-    if idx == 4:
-        break
+# --- Holdings Breakdown ---
+st.header("Current Holdings")
 
-# --- Category Allocation Pie Chart ---
-st.subheader("Allocation by Category")
-categories = ["Core", "Growth", "Speculative"]
-values = [core, growth, spec]
-fig1, ax1 = plt.subplots()
-ax1.pie(values, labels=categories, autopct='%1.1f%%', startangle=90)
-ax1.axis('equal')
-st.pyplot(fig1)
+# Table 1: Core Info
+st.subheader("Core Information")
+core_cols = ["Ticker", "Company", "Category", "Current Value (£)", "Current Weight %", "Portfolio %"]
+st.dataframe(df[core_cols].round(2))
 
-# --- Target vs Actual Bar Chart ---
-st.subheader("Target vs Actual Allocation")
-targets = [15, 35, 50]
-actuals = [core/total*100, growth/total*100, spec/total*100]
-fig2, ax2 = plt.subplots()
-bar_width = 0.35
-r1 = range(len(categories))
-r2 = [x + bar_width for x in r1]
-ax2.bar(r1, targets, width=bar_width, label='Target')
-ax2.bar(r2, actuals, width=bar_width, label='Actual')
-ax2.set_xticks([r + bar_width/2 for r in r1])
-ax2.set_xticklabels(categories)
-ax2.legend()
-st.pyplot(fig2)
+# Table 2: Analyst Data
+st.subheader("Analyst Data")
+analyst_cols = ["Ticker", "Current Stock Price", "Analyst Price High", "Analyst Price Low", "Analyst Price Target", "Target Price Upside (%)", "Number of Analysts", "Analyst Data Confidence", "Analyst Consensus Score"]
+st.dataframe(df[analyst_cols].round(2))
 
-# --- Country Allocation Pie Chart ---
-st.subheader("Allocation by Region")
-def map_to_region(country):
-    if country in ["US", "CA"]:
-        return "US"
-    elif country in ["CN", "JP", "KR", "IN"]:
-        return "Asia"
-    elif country in ["UK"]:
-        return "UK"
-    elif country in ["DE", "FR", "IT", "ES", "NL", "SE"]:
-        return "Europe"
-    else:
-        return "Rest of World"
+# Table 3: Financial Fundamentals
+st.subheader("Financial Fundamentals")
+fundamental_cols = ["Ticker", "EPS Growth Score", "Revenue Growth Score"]
+st.dataframe(df[fundamental_cols].round(2))
 
-df["Region"] = df["Country"].apply(map_to_region)
-region_data = df.groupby("Region")["Current Value (£)"].sum()
-fig3, ax3 = plt.subplots()
-ax3.pie(region_data, labels=region_data.index, autopct='%1.1f%%', startangle=90)
-ax3.axis('equal')
-st.pyplot(fig3)
-
-# --- Sector Allocation Pie Chart ---
-st.subheader("Allocation by Sector")
-sector_data = df.groupby("Sector")["Current Value (£)"].sum()
-fig4, ax4 = plt.subplots()
-ax4.pie(sector_data, labels=sector_data.index, autopct='%1.1f%%', startangle=90)
-ax4.axis('equal')
-st.pyplot(fig4)
-
-# --- Holdings Table ---
-st.header("Current Holdings — Full View")
-st.dataframe(df.round(2))
+# Table 4: Other Information
+st.subheader("Other Information")
+used_cols = set(core_cols + analyst_cols + fundamental_cols)
+remaining_cols = [col for col in df.columns if col not in used_cols]
+st.dataframe(df[["Ticker"] + remaining_cols].round(2))
 
 # --- New Picks ---
 st.header("New Stock Picks")
@@ -99,7 +75,6 @@ for index, row in new_picks.iterrows():
         st.markdown(f"**Cons:** {row['Cons']}")
         st.markdown("---")
 
-# --- Toggle to Show New Picks Raw Data ---
 if st.checkbox("Show Raw Data for New Picks"):
     st.dataframe(new_picks.round(2))
 
